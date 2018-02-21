@@ -1,0 +1,17 @@
+{
+    "name": "clickandmortar/remote-bundle",
+    "description": "Facilitate files transfer from remote servers",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Simon CARRE",
+            "email": "simon.carre@clickandmortar.fr"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "ClickAndMortar\\RemoteBundle\\": ""
+        }
+    }
+}
