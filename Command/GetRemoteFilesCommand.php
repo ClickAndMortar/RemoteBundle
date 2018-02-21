@@ -46,7 +46,8 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
              ->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Connection type', 'sftp')
              ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Port', self::DEFAULT_SFTP_CONNECTION_PORT)
              ->addOption('delete', 'd', InputOption::VALUE_NONE, 'Delete distant files after download')
-             ->addOption('password', 'w', InputOption::VALUE_OPTIONAL, 'Password');
+             ->addOption('password', 'w', InputOption::VALUE_OPTIONAL, 'Password')
+             ->addOption('extension', 'x', InputOption::VALUE_OPTIONAL, 'Replace distant files extension with current');
     }
 
     /**
@@ -75,7 +76,8 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
             $input->getArgument('distantFilePath'),
             $input->getArgument('localDirectory'),
             $input->getOption('password'),
-            $input->getOption('delete')
+            $input->getOption('delete'),
+            $input->getOption('extension')
         );
     }
 
@@ -89,10 +91,11 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
      * @param string $localDirectory
      * @param null   $password
      * @param bool   $deleteAfterDownload
+     * @param null   $newExtension
      *
      * @return void
      */
-    protected function getRemoteFilesBySftp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false)
+    protected function getRemoteFilesBySftp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false, $newExtension = null)
     {
         $connection = ssh2_connect($server, $port);
         ssh2_auth_password($connection, $user, $password);
@@ -104,11 +107,17 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
         $distantFileMask      = pathinfo($filePath, PATHINFO_BASENAME);
         $sftpPath             = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantDirectoryName);
         $handle               = opendir($sftpPath);
-        while (false != ($currentFilename = readdir($handle))) {
-            if (fnmatch($distantFileMask, $currentFilename)) {
+        while (false != ($distantFilename = readdir($handle))) {
+            if (fnmatch($distantFileMask, $distantFilename)) {
+                $localFilename = $distantFilename;
+                if ($newExtension !== null) {
+                    $filenameWithoutExtension = pathinfo($distantFilename, PATHINFO_FILENAME);
+                    $localFilename            = sprintf('%s.%s', $filenameWithoutExtension, $newExtension);
+                }
+
                 $filesToDownload[] = [
-                    'distant' => sprintf('%s/%s', $distantDirectoryName, $currentFilename),
-                    'local'   => sprintf('%s%s', $localDirectory, $currentFilename),
+                    'distant' => sprintf('%s/%s', $distantDirectoryName, $distantFilename),
+                    'local'   => sprintf('%s%s', $localDirectory, $localFilename),
                 ];
             }
         }

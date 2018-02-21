@@ -33,5 +33,5 @@ $bundles = array(
 To download files from a remote server, you can use bundle command:
 
 ```
-php bin/console candm:remote:get -t <type> -w <password> -d <server> <user> <distantFilePaths> <localDirectory>
+php bin/console candm:remote:get -t <type> -w <password> -x <newExtension> -d <server> <user> <distantFilePaths> <localDirectory>
 ```
