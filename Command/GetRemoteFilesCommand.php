@@ -1,6 +1,6 @@
 <?php
 
-namespace ClickAndMortar\Bundle\CatalogBundle\Command;
+namespace ClickAndMortar\RemoteBundle\Command;
 
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
