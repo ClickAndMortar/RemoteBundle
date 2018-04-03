@@ -61,7 +61,7 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
     }
 
     /**
-     * Update products shipping costs linked to a shipping cost range entity
+     * Execute command
      *
      * @param InputInterface  $input
      * @param OutputInterface $output
