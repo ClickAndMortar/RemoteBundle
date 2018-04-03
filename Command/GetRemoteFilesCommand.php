@@ -31,6 +31,16 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
     protected $output;
 
     /**
+     * Excluded filenames for download
+     *
+     * @var array
+     */
+    protected $excludedFilenames = [
+        '.',
+        '..',
+    ];
+
+    /**
      * Configure command
      *
      * @return void
@@ -108,7 +118,11 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
         $sftpPath             = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantDirectoryName);
         $handle               = opendir($sftpPath);
         while (false != ($distantFilename = readdir($handle))) {
-            if (fnmatch($distantFileMask, $distantFilename)) {
+            $basename = pathinfo($distantFilename, PATHINFO_BASENAME);
+            if (
+                fnmatch($distantFileMask, $distantFilename)
+                && !in_array($basename, $this->excludedFilenames)
+            ) {
                 $localFilename = $distantFilename;
                 if ($newExtension !== null) {
                     $filenameWithoutExtension = pathinfo($distantFilename, PATHINFO_FILENAME);
