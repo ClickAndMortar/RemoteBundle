@@ -133,5 +133,10 @@ class PutRemoteFilesCommand extends ContainerAwareCommand
 
         fclose($distantFile);
         fclose($localFile);
+
+        // Delete local file if necessary
+        if ($deleteAfterUpload) {
+            unlink($localFilePath);
+        }
     }
 }
