@@ -2,20 +2,13 @@
 
 The Remote bundle by Click And Mortar is designed to facilitate files transfer from remote server.
 
+Made by :heart: by C&M
+
 ## Installation
 
-Add package your **`composer.json`** file:
-```javascript
-"require": {
-    ...
-    "clickandmortar/remote-bundle": "^1.0"
-    ...
-}
-```
-
-Launch `composer update` to add bundle to your project:
+Add package with composer:
 ```bash
-composer update clickandmortar/remote-bundle
+composer require clickandmortar/remote-bundle "^1.0"
 ```
 
 Add bundle in your **`app/AppKernel.php`** file:
@@ -34,4 +27,12 @@ To download files from a remote server, you can use bundle command:
 
 ```
 php bin/console candm:remote:get -t <type> -w <password> -x <newExtension> -d <server> <user> <distantFilePaths> <localDirectory>
+```
+
+### Upload
+
+To upload files to a remote server, you can use bundle command:
+
+```
+php bin/console candm:remote:put -t <type> -w <password> -d <server> <user> <localFilePath> <distantFilePath>
 ```
