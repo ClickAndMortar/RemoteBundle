@@ -92,6 +92,58 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
     }
 
     /**
+     * Get remote files from a remote with FTP
+     *
+     * @param string $server
+     * @param string $user
+     * @param int    $port
+     * @param string $filePath
+     * @param string $localDirectory
+     * @param null   $password
+     * @param bool   $deleteAfterDownload
+     * @param null   $newExtension
+     *
+     * @return void
+     */
+    protected function getRemoteFilesByFtp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false, $newExtension = null)
+    {
+        // Start connection
+        $connection = ftp_connect($server, $port);
+        if ($connection === false) {
+            $this->output->writeln(sprintf('<error>Can not open connection to FTP server %s</error>', $server));
+
+            return;
+        }
+
+        // Login
+        $isLogged = ftp_login($connection, $user, $password);
+        if ($isLogged === false) {
+            $this->output->writeln(sprintf('<error>Bad user or password to open FTP connection to %s</error>', $server));
+
+            return;
+        }
+
+        // Active passive mode
+        ftp_set_option($connection, FTP_USEPASVADDRESS, false);
+        ftp_pasv($connection, true);
+
+        // Get files list and download
+        $files = ftp_nlist($connection, $filePath);
+        foreach ($files as $file) {
+            $localFile        = sprintf('%s%s', $localDirectory, $file);
+            $distantDirectory = pathinfo($filePath, PATHINFO_DIRNAME);
+            $distantDirectory = $distantDirectory == '/' ? '' : $distantDirectory;
+            $distantFile      = sprintf('%s/%s', $distantDirectory, $file);
+
+            $this->output->writeln(sprintf('<info>Download file %s to %s...</info>', $distantFile, $localFile));
+            if (!ftp_get($connection, $localFile, $distantFile, FTP_BINARY)) {
+                $this->output->writeln(sprintf('<error>Error during download of file %s</error>', $distantFile));
+            }
+        }
+        ftp_close($connection);
+    }
+
+    /**
      * Get remote files from a remote with SFTP
      *
      * @param string $server
