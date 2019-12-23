@@ -41,7 +41,7 @@ class PutRemoteFilesCommand extends ContainerAwareCommand
              ->setDescription('Put files to a remote server (FTP / SSH / ...)')
              ->addArgument('server', InputArgument::REQUIRED, 'Server')
              ->addArgument('user', InputArgument::REQUIRED, 'User')
-             ->addArgument('localFilePath', InputArgument::REQUIRED, 'Local file path: /tmp/my_file.txt')
+             ->addArgument('localFilePath', InputArgument::REQUIRED, 'Local file path: /tmp/my_file_*.txt')
              ->addArgument('distantFilePath', InputArgument::REQUIRED, 'Distant file path: /tmp/my_file.txt')
              ->addOption('type', 't', InputOption::VALUE_REQUIRED, 'Connection type', 'sftp')
              ->addOption('port', 'p', InputOption::VALUE_OPTIONAL, 'Port', self::DEFAULT_SFTP_CONNECTION_PORT)
@@ -94,49 +94,58 @@ class PutRemoteFilesCommand extends ContainerAwareCommand
      */
     protected function putRemoteFilesBySftp($server, $user, $port, $distantFilePath, $localFilePath, $password = null, $deleteAfterUpload = false)
     {
-        if (!file_exists($localFilePath)) {
-            $this->output->writeln('<error>Invalid local file path.</error>');
+        $localFilePaths = glob($localFilePath);
+        if (!is_array($localFilePaths)) {
+            $this->output->writeln('<error>No local files matching path.</error>');
 
             return;
         }
 
-        // Init SFTP connection
-        $connection = ssh2_connect($server, $port);
-        ssh2_auth_password($connection, $user, $password);
-        $sftpConnection = ssh2_sftp($connection);
-        $sftpBasePath   = intval($sftpConnection);
+        foreach ($localFilePaths as $localFilePath) {
+            if (!file_exists($localFilePath)) {
+                $this->output->writeln(sprintf('<error>Invalid local file path : %s</error>', $localFilePath));
 
-        // Open distant file
-        $sftpDistantPath = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantFilePath);
-        $distantFile     = fopen($sftpDistantPath, 'w');
-        if ($distantFile === false) {
-            $this->output->writeln('<error>Can not write distant file.</error>');
+                return;
+            }
 
-            return;
-        }
+            // Init SFTP connection
+            $connection = ssh2_connect($server, $port);
+            ssh2_auth_password($connection, $user, $password);
+            $sftpConnection = ssh2_sftp($connection);
+            $sftpBasePath   = intval($sftpConnection);
 
-        // And local file
-        $localFile = fopen($localFilePath, 'r');
-        if ($localFile === false) {
-            $this->output->writeln('<error>Can not read local file.</error>');
+            // Open distant file
+            $sftpDistantPath = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantFilePath);
+            $distantFile     = fopen($sftpDistantPath, 'w');
+            if ($distantFile === false) {
+                $this->output->writeln('<error>Can not write distant file.</error>');
 
-            return;
-        }
+                return;
+            }
 
-        // And copy
-        $writtenBytes = stream_copy_to_stream($localFile, $distantFile);
-        if ($writtenBytes === false) {
-            $this->output->writeln('<error>Can not copy file.</error>');
+            // And local file
+            $localFile = fopen($localFilePath, 'r');
+            if ($localFile === false) {
+                $this->output->writeln('<error>Can not read local file.</error>');
 
-            return;
-        }
+                return;
+            }
 
-        fclose($distantFile);
-        fclose($localFile);
+            // And copy
+            $writtenBytes = stream_copy_to_stream($localFile, $distantFile);
+            if ($writtenBytes === false) {
+                $this->output->writeln('<error>Can not copy file.</error>');
 
-        // Delete local file if necessary
-        if ($deleteAfterUpload) {
-            unlink($localFilePath);
+                return;
+            }
+
+            fclose($distantFile);
+            fclose($localFile);
+
+            // Delete local file if necessary
+            if ($deleteAfterUpload) {
+                unlink($localFilePath);
+            }
         }
     }
 }
