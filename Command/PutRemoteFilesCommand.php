@@ -115,8 +115,23 @@ class PutRemoteFilesCommand extends ContainerAwareCommand
             $sftpBasePath   = intval($sftpConnection);
 
             // Open distant file
-            $sftpDistantPath = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantFilePath);
-            $distantFile     = fopen($sftpDistantPath, 'w');
+            if (substr($distantFilePath, -1) == DIRECTORY_SEPARATOR) {
+                $localFilename   = basename($localFilePath);
+                $sftpDistantPath = sprintf(
+                    'ssh2.sftp://%s%s%s',
+                    $sftpBasePath,
+                    $distantFilePath,
+                    $localFilename
+                );
+            } else {
+                $sftpDistantPath = sprintf(
+                    'ssh2.sftp://%s%s',
+                    $sftpBasePath,
+                    $distantFilePath
+                );
+            }
+
+            $distantFile = fopen($sftpDistantPath, 'w');
             if ($distantFile === false) {
                 $this->output->writeln('<error>Can not write distant file.</error>');
 
