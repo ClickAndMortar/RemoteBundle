@@ -1,0 +1,8 @@
+parameters:
+    candm_remote.command.get_remote_files.class: ClickAndMortar\RemoteBundle\Command\GetRemoteFilesCommand
+
+services:
+    candm_remote.command.get_remote_files:
+        class: '%candm_remote.command.get_remote_files.class%'
+        tags:
+        - { name: console.command, command: 'candm:remote:get' }

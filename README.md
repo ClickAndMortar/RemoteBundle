@@ -4,6 +4,13 @@
 
 Made with :blue_heart: by C&M
 
+## Versions
+
+| **Bundle version**  | **Symfony version** |
+| ------------- | ------------- |
+| v1.1.*  | v4.*.*  |
+| v1.0.*  | v3.*.*  |
+
 ## Installation
 
 ### Download the Bundle
@@ -15,27 +22,17 @@ $ composer require clickandmortar/remote-bundle
 ### Enable the Bundle
 
 Enable the bundle by adding it to the list of registered bundles
-in the `app/AppKernel.php` file of your project:
+in the `config/bundles.php` file of your project:
 
 ```php
 <?php
-// app/AppKernel.php
 
-// ...
-class AppKernel extends Kernel
-{
-    public function registerBundles()
-    {
-        $bundles = [
-            // ...
-            new ClickAndMortar\RemoteBundle\ClickAndMortarRemoteBundle(),
-        ];
+return [
+    ...
+    ClickAndMortar\RemoteBundle\ClickAndMortarRemoteBundle::class => ['all' => true],
+    ...
+];
 
-        // ...
-    }
-
-    // ...
-}
 ```
 
 ## Usage

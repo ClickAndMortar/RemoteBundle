@@ -2,11 +2,12 @@
 
 namespace ClickAndMortar\RemoteBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use phpseclib\Net\SFTP;
 
 /**
  * Get files from a remote server (FTP / SSH / ...)
@@ -14,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  * @author  Simon CARRE <simon.carre@clickandmortar.fr>
  * @package ClickAndMortar\Bundle\CatalogBundle\Command
  */
-class GetRemoteFilesCommand extends ContainerAwareCommand
+class GetRemoteFilesCommand extends Command
 {
     /**
      * Default SFTP connection port
@@ -47,8 +48,7 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
      */
     protected function configure()
     {
-        $this->setName('candm:remote:get')
-             ->setDescription('Get files from a remote server (FTP / SSH / ...)')
+        $this->setDescription('Get files from a remote server (FTP / SSH / ...)')
              ->addArgument('server', InputArgument::REQUIRED, 'Server')
              ->addArgument('user', InputArgument::REQUIRED, 'User')
              ->addArgument('distantFilePath', InputArgument::REQUIRED, 'Distant file path: /tmp/my_file or /tmp/files_*')
@@ -159,72 +159,55 @@ class GetRemoteFilesCommand extends ContainerAwareCommand
      */
     protected function getRemoteFilesBySftp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false, $newExtension = null)
     {
-        $connection = ssh2_connect($server, $port);
-        ssh2_auth_password($connection, $user, $password);
-        $sftpConnection = ssh2_sftp($connection);
-        $sftpBasePath   = intval($sftpConnection);
+        // Open connection
+        $sftpClient = new SFTP($server, $port);
+        if (!$sftpClient->login($user, $password)) {
+            $this->output->writeln(sprintf('<error>Can not open connection to server %s with user %s</error>', $server, $user));
 
-        $filesToDownload      = [];
+            return;
+        }
+
+        // Open distant directory
         $distantDirectoryName = pathinfo($filePath, PATHINFO_DIRNAME);
         $distantFileMask      = pathinfo($filePath, PATHINFO_BASENAME);
-        $sftpPath             = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $distantDirectoryName);
-        $handle               = opendir($sftpPath);
-        while (false != ($distantFilename = readdir($handle))) {
-            $basename = pathinfo($distantFilename, PATHINFO_BASENAME);
-            if (
-                fnmatch($distantFileMask, $distantFilename)
-                && !in_array($basename, $this->excludedFilenames)
-            ) {
-                $localFilename = $distantFilename;
+        if (!$sftpClient->chdir($distantDirectoryName)) {
+            $this->output->writeln(sprintf('<error>Can not access to distant directory %s</error>', $distantDirectoryName));
+
+            return;
+        }
+
+        // Download files
+        $hasDownloadedOneFile = false;
+        foreach ($sftpClient->rawlist() as $sftpFile) {
+            // Manage only classic files
+            if ($sftpFile['type'] !== NET_SFTP_TYPE_REGULAR) {
+                continue;
+            }
+            if (fnmatch($distantFileMask, $sftpFile['filename'])) {
+                $distantFilename = $sftpFile['filename'];
+                $localFilename   = $distantFilename;
+
+                // Add new extension if necessary
                 if ($newExtension !== null) {
                     $filenameWithoutExtension = pathinfo($distantFilename, PATHINFO_FILENAME);
                     $localFilename            = sprintf('%s.%s', $filenameWithoutExtension, $newExtension);
                 }
+                $localFilePath = sprintf('%s%s', $localDirectory, $localFilename);
 
-                $filesToDownload[] = [
-                    'distant' => sprintf('%s/%s', $distantDirectoryName, $distantFilename),
-                    'local'   => sprintf('%s%s', $localDirectory, $localFilename),
-                ];
-            }
-        }
-        closedir($handle);
+                $this->output->writeln(sprintf('<info>Download distant file %s...</info>', $distantFilename));
+                if (!$sftpClient->get($distantFilename, $localFilePath)) {
+                    $this->output->writeln(sprintf('<error>Can not download distant file %s</error>', $distantFilename));
+                }
+                $hasDownloadedOneFile = true;
 
-        foreach ($filesToDownload as $fileToDownload) {
-            $this->output->writeln(sprintf('<info>Download file %s to %s...</info>', $fileToDownload['distant'], $fileToDownload['local']));
-
-            // Open distant file
-            $remoteFilePath = sprintf('ssh2.sftp://%s%s', $sftpBasePath, $fileToDownload['distant']);
-            if (!$remoteFile = @fopen($remoteFilePath, 'r')) {
-                $this->output->writeln(sprintf('<error>Can not open distant file %s</error>', $fileToDownload['distant']));
-                continue;
-            }
-
-            // Open local file
-            if (!$localFile = @fopen($fileToDownload['local'], 'w')) {
-                $this->output->writeln(sprintf('<error>Can not open local file %s</error>', $fileToDownload['local']));
-                continue;
-            }
-
-            // And write file
-            $read            = 0;
-            $distantFileSize = filesize($remoteFilePath);
-            while ($read < $distantFileSize && ($buffer = fread($remoteFile, $distantFileSize - $read))) {
-                $read += strlen($buffer);
-                if (fwrite($localFile, $buffer) === false) {
-                    $this->output->writeln(sprintf('<error>Can not write local file %s</error>', $fileToDownload['local']));
-                    break;
+                // Delete file if necessary
+                if ($deleteAfterDownload) {
+                    $sftpClient->delete($distantFilename);
                 }
             }
-            fclose($localFile);
-            fclose($remoteFile);
-
-            // Delete file if necessary
-            if ($deleteAfterDownload) {
-                ssh2_sftp_unlink($sftpConnection, $fileToDownload['distant']);
-            }
         }
 
-        if (!empty($filesToDownload)) {
+        if ($hasDownloadedOneFile) {
             $this->output->writeln('<info>All files have been successfully downloaded!</info>');
         } else {
             $this->output->writeln('<info>No files to download.</info>');
