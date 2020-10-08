@@ -13,5 +13,8 @@
         "psr-4": {
             "ClickAndMortar\\RemoteBundle\\": ""
         }
+    },
+    "require": {
+        "phpseclib/phpseclib": "2.0.*"
     }
 }
