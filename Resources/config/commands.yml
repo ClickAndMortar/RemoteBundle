@@ -1,8 +1,14 @@
 parameters:
     candm_remote.command.get_remote_files.class: ClickAndMortar\RemoteBundle\Command\GetRemoteFilesCommand
+    candm_remote.command.put_remote_files.class: ClickAndMortar\RemoteBundle\Command\PutRemoteFilesCommand
 
 services:
     candm_remote.command.get_remote_files:
         class: '%candm_remote.command.get_remote_files.class%'
         tags:
         - { name: console.command, command: 'candm:remote:get' }
+
+    candm_remote.command.put_remote_files:
+        class: '%candm_remote.command.put_remote_files.class%'
+        tags:
+        - { name: console.command, command: 'candm:remote:put' }
