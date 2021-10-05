@@ -125,4 +125,68 @@ class PutRemoteFilesCommand extends Command
             }
         }
     }
+
+    /**
+     * Put local file to a remote with FTPS
+     *
+     * @param string $server
+     * @param string $user
+     * @param int    $port
+     * @param string $distantFilePath
+     * @param string $localFilePath
+     * @param null   $password
+     * @param bool   $deleteAfterUpload
+     *
+     * @return void
+     */
+    protected function putRemoteFilesByFtps($server, $user, $port, $distantFilePath, $localFilePath, $password = null, $deleteAfterUpload = false)
+    {
+        // Check for local files
+        $localFilePaths = glob($localFilePath);
+        if (!is_array($localFilePaths)) {
+            $this->output->writeln('<error>No local files matching path.</error>');
+
+            return;
+        }
+
+        // Upload files
+        $isDistantDirectoryPath = substr($distantFilePath, -1) == DIRECTORY_SEPARATOR;
+        foreach ($localFilePaths as $localFilePath) {
+            $currentDistantFilePath = $distantFilePath;
+            if ($isDistantDirectoryPath) {
+                $currentDistantFilePath = sprintf('%s%s', $distantFilePath, basename($localFilePath));
+            }
+            $this->output->writeln(sprintf('<info>Update local file %s...</info>', $localFilePath));
+
+            // Open connection (one per file to avoid "session reuse required" issue)
+            $connection = ftp_ssl_connect($server);
+            if ($connection === false) {
+                $this->output->writeln(sprintf('<error>Can not open connection to FTPS server %s</error>', $server));
+
+                return;
+            }
+
+            // Login
+            $isLogged = ftp_login($connection, $user, $password);
+            if ($isLogged === false) {
+                $this->output->writeln(sprintf('<error>Bad user or password to open FTPS connection to %s</error>', $server));
+
+                return;
+            }
+
+            // Active passive mode
+            ftp_set_option($connection, FTP_USEPASVADDRESS, false);
+            ftp_pasv($connection, true);
+
+            if (!ftp_put($connection, $currentDistantFilePath, $localFilePath, FTP_BINARY)) {
+                $this->output->writeln(sprintf('<error>Can not upload local file %s</error>', $localFilePath));
+            }
+            if ($deleteAfterUpload) {
+                unlink($localFilePath);
+            }
+
+            // Close connection
+            ftp_close($connection);
+        }
+    }
 }
