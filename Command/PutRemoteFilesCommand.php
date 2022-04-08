@@ -17,6 +17,8 @@ use phpseclib\Net\SFTP;
  */
 class PutRemoteFilesCommand extends Command
 {
+    protected static $defaultName = 'candm:remote:put';
+
     /**
      * Default SFTP connection port
      *
@@ -55,7 +57,7 @@ class PutRemoteFilesCommand extends Command
      * @param InputInterface  $input
      * @param OutputInterface $output
      *
-     * @return int|null|void
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -65,10 +67,11 @@ class PutRemoteFilesCommand extends Command
         if (!method_exists($this, $getterByType)) {
             $output->writeln('<error>Invalid connection type.</error>');
 
-            return;
+            return 1;
         }
         $this->output = $output;
-        $this->$getterByType(
+
+        return $this->$getterByType(
             $input->getArgument('server'),
             $input->getArgument('user'),
             $input->getOption('port'),
@@ -90,7 +93,7 @@ class PutRemoteFilesCommand extends Command
      * @param null   $password
      * @param bool   $deleteAfterUpload
      *
-     * @return void
+     * @return int
      */
     protected function putRemoteFilesBySftp($server, $user, $port, $distantFilePath, $localFilePath, $password = null, $deleteAfterUpload = false)
     {
@@ -99,7 +102,7 @@ class PutRemoteFilesCommand extends Command
         if (!is_array($localFilePaths)) {
             $this->output->writeln('<error>No local files matching path.</error>');
 
-            return;
+            return 1;
         }
 
         // Open connection
@@ -107,7 +110,7 @@ class PutRemoteFilesCommand extends Command
         if (!$sftpClient->login($user, $password)) {
             $this->output->writeln(sprintf('<error>Can not open connection to server %s with user %s</error>', $server, $user));
 
-            return;
+            return 1;
         }
 
         // Upload files
@@ -124,6 +127,8 @@ class PutRemoteFilesCommand extends Command
                 unlink($localFilePath);
             }
         }
+        
+        return 0;
     }
 
     /**
@@ -137,7 +142,7 @@ class PutRemoteFilesCommand extends Command
      * @param null   $password
      * @param bool   $deleteAfterUpload
      *
-     * @return void
+     * @return int
      */
     protected function putRemoteFilesByFtps($server, $user, $port, $distantFilePath, $localFilePath, $password = null, $deleteAfterUpload = false)
     {
@@ -146,7 +151,7 @@ class PutRemoteFilesCommand extends Command
         if (!is_array($localFilePaths)) {
             $this->output->writeln('<error>No local files matching path.</error>');
 
-            return;
+            return 1;
         }
 
         // Upload files
@@ -163,7 +168,7 @@ class PutRemoteFilesCommand extends Command
             if ($connection === false) {
                 $this->output->writeln(sprintf('<error>Can not open connection to FTPS server %s</error>', $server));
 
-                return;
+                return 1;
             }
 
             // Login
@@ -171,7 +176,7 @@ class PutRemoteFilesCommand extends Command
             if ($isLogged === false) {
                 $this->output->writeln(sprintf('<error>Bad user or password to open FTPS connection to %s</error>', $server));
 
-                return;
+                return 1;
             }
 
             // Active passive mode
@@ -187,6 +192,8 @@ class PutRemoteFilesCommand extends Command
 
             // Close connection
             ftp_close($connection);
+            
+            return 0;
         }
     }
 }

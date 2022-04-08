@@ -17,6 +17,8 @@ use phpseclib\Net\SFTP;
  */
 class GetRemoteFilesCommand extends Command
 {
+    protected static $defaultName = 'candm:remote:get';
+
     /**
      * Default SFTP connection port
      *
@@ -66,7 +68,7 @@ class GetRemoteFilesCommand extends Command
      * @param InputInterface  $input
      * @param OutputInterface $output
      *
-     * @return int|null|void
+     * @return int
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
@@ -76,10 +78,11 @@ class GetRemoteFilesCommand extends Command
         if (!method_exists($this, $getterByType)) {
             $output->writeln('<error>Invalid connection type.</error>');
 
-            return;
+            return 1;
         }
         $this->output = $output;
-        $this->$getterByType(
+
+        return $this->$getterByType(
             $input->getArgument('server'),
             $input->getArgument('user'),
             $input->getOption('port'),
@@ -103,7 +106,7 @@ class GetRemoteFilesCommand extends Command
      * @param bool   $deleteAfterDownload
      * @param null   $newExtension
      *
-     * @return void
+     * @return int
      */
     protected function getRemoteFilesByFtp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false, $newExtension = null)
     {
@@ -112,7 +115,7 @@ class GetRemoteFilesCommand extends Command
         if ($connection === false) {
             $this->output->writeln(sprintf('<error>Can not open connection to FTP server %s</error>', $server));
 
-            return;
+            return 1;
         }
 
         // Login
@@ -120,7 +123,7 @@ class GetRemoteFilesCommand extends Command
         if ($isLogged === false) {
             $this->output->writeln(sprintf('<error>Bad user or password to open FTP connection to %s</error>', $server));
 
-            return;
+            return 1;
         }
 
         // Active passive mode
@@ -141,6 +144,8 @@ class GetRemoteFilesCommand extends Command
             }
         }
         ftp_close($connection);
+        
+        return 0;
     }
 
     /**
@@ -155,7 +160,7 @@ class GetRemoteFilesCommand extends Command
      * @param bool   $deleteAfterDownload
      * @param null   $newExtension
      *
-     * @return void
+     * @return int
      */
     protected function getRemoteFilesBySftp($server, $user, $port, $filePath, $localDirectory, $password = null, $deleteAfterDownload = false, $newExtension = null)
     {
@@ -164,7 +169,7 @@ class GetRemoteFilesCommand extends Command
         if (!$sftpClient->login($user, $password)) {
             $this->output->writeln(sprintf('<error>Can not open connection to server %s with user %s</error>', $server, $user));
 
-            return;
+            return 1;
         }
 
         // Open distant directory
@@ -173,7 +178,7 @@ class GetRemoteFilesCommand extends Command
         if (!$sftpClient->chdir($distantDirectoryName)) {
             $this->output->writeln(sprintf('<error>Can not access to distant directory %s</error>', $distantDirectoryName));
 
-            return;
+            return 1;
         }
 
         // Download files
@@ -212,5 +217,7 @@ class GetRemoteFilesCommand extends Command
         } else {
             $this->output->writeln('<info>No files to download.</info>');
         }
+        
+        return 0;
     }
 }
