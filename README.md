@@ -6,10 +6,11 @@ Made with :blue_heart: by C&M
 
 ## Versions
 
-| **Bundle version**  | **Symfony version** |
-| ------------- | ------------- |
-| v1.1.*  | v4.*.*  |
-| v1.0.*  | v3.*.*  |
+| **Bundle version** | **Symfony version** |
+|--------------------|---------------------|
+| v5.4.*             | v5.4.*              |
+| v1.1.*             | v4.*.*              |
+| v1.0.*             | v3.*.*              |
 
 ## Installation
 
