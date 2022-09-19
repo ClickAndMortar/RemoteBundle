@@ -127,7 +127,7 @@ class PutRemoteFilesCommand extends Command
                 unlink($localFilePath);
             }
         }
-        
+
         return 0;
     }
 
@@ -192,8 +192,8 @@ class PutRemoteFilesCommand extends Command
 
             // Close connection
             ftp_close($connection);
-            
-            return 0;
         }
+
+        return 0;
     }
 }
